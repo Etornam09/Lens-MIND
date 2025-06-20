@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react'; // Removed unused 'useEffect' import
 
 const App = () => {
     const [initialPrompt, setInitialPrompt] = useState('');
-    const [modificationPrompt, setModificationPrompt] = useState(''); // New state for modification prompt
-    const [currentPromptForDraft, setCurrentPromptForDraft] = useState(''); // Stores the prompt currently used for draft generation
+    const [modificationPrompt, setModificationPrompt] = useState('');
+    const [currentPromptForDraft, setCurrentPromptForDraft] = useState('');
     const [draftImage, setDraftImage] = useState(null);
     const [optimizedPrompt, setOptimizedPrompt] = useState('');
     const [appState, setAppState] = useState('input'); // 'input', 'loading', 'draft_display', 'feedback', 'modify_draft_input', 'optimized_prompt_display'
@@ -11,8 +11,10 @@ const App = () => {
     const [modalMessage, setModalMessage] = useState('');
     const [showModal, setShowModal] = useState(false);
 
-    // Placeholder for API key, Canvas will inject it at runtime
-    const apiKey = "";
+    // Placeholder for API key, Canvas will inject it at runtime.
+    // For Netlify deployment, ensure you set REACT_APP_GEMINI_API_KEY in Netlify build environment variables.
+    // The build process for Create React App will then correctly substitute process.env.REACT_APP_GEMINI_API_KEY.
+    const apiKey = ""; // Reverted API key access for direct Canvas execution.
 
     const generateDraftImage = async (prompt) => {
         setIsLoading(true);
@@ -32,7 +34,8 @@ const App = () => {
             if (!response.ok) {
                 const errorData = await response.json();
                 console.error("Image generation API error:", errorData);
-                throw new Error(`Image generation failed: ${errorData.error.message || response.statusText}`);
+                // Robustified error message with optional chaining and fallback
+                throw new Error(`Image generation failed: ${errorData.error?.message || response.statusText || 'Unknown error'}`);
             }
 
             const result = await response.json();
@@ -44,13 +47,14 @@ const App = () => {
             } else {
                 setModalMessage("Could not generate a draft image. Please try again.");
                 setShowModal(true);
-                setAppState('input'); // Go back to input on failure
+                setAppState('input');
             }
         } catch (error) {
             console.error("Error generating draft image:", error);
-            setModalMessage(`Failed to generate image: ${error.message}. Please try again.`);
+            // Robustified modal message with optional chaining and fallback
+            setModalMessage(`Failed to generate image: ${error?.message || 'Unknown error'}. Please try again.`);
             setShowModal(true);
-            setAppState('input'); // Go back to input on failure
+            setAppState('input');
         } finally {
             setIsLoading(false);
         }
@@ -60,7 +64,6 @@ const App = () => {
         setIsLoading(true);
         setOptimizedPrompt(''); // Clear previous prompt
         try {
-            // Use currentPromptForDraft to better inform the optimized prompt generation
             const promptText = `Based on the most recent user request: '${currentPromptForDraft}' and the visual style of this image, generate a highly detailed, professional photography AI prompt. The prompt should be optimized for a realistic, cinematic, and high-quality output using Gemini AI.
 
             Include specific camera settings (e.g., white balance, aperture, shutter speed, ISO, focal length, depth of field, lens type like '85mm f/1.4 prime lens'), lighting conditions (e.g., golden hour, soft box lighting, natural light, dramatic rim lighting), photographic composition (e.g., rule of thirds, leading lines, low angle shot, wide-angle, close-up, medium shot, subject distance, pose, expression, dynamic action, serene stillness, scene elements, background blur/bokeh, symmetrical composition), and the intended mood/purpose of the image (e.g., dramatic portrait, serene landscape, bustling street photography, product photography, candid moment).
@@ -78,7 +81,7 @@ const App = () => {
                             {
                                 inlineData: {
                                     mimeType: "image/png",
-                                    data: base64ImageData.split(',')[1] // Extract base64 part
+                                    data: base64ImageData.split(',')[1]
                                 }
                             }
                         ]
@@ -96,7 +99,8 @@ const App = () => {
             if (!response.ok) {
                 const errorData = await response.json();
                 console.error("LLM API error:", errorData);
-                throw new Error(`LLM generation failed: ${errorData.error.message || response.statusText}`);
+                // Robustified error message with optional chaining and fallback
+                throw new Error(`LLM generation failed: ${errorData.error?.message || response.statusText || 'Unknown error'}`);
             }
 
             const result = await response.json();
@@ -109,13 +113,14 @@ const App = () => {
             } else {
                 setModalMessage("Could not generate an optimized prompt. Please try again.");
                 setShowModal(true);
-                setAppState('feedback'); // Stay on feedback if prompt generation fails
+                setAppState('feedback');
             }
         } catch (error) {
             console.error("Error generating optimized prompt:", error);
-            setModalMessage(`Failed to generate prompt: ${error.message}. Please try again.`);
+            // Robustified modal message with optional chaining and fallback
+            setModalMessage(`Failed to generate prompt: ${error?.message || 'Unknown error'}. Please try again.`);
             setShowModal(true);
-            setAppState('feedback'); // Stay on feedback if prompt generation fails
+            setAppState('feedback');
         } finally {
             setIsLoading(false);
         }
@@ -135,10 +140,9 @@ const App = () => {
     const handleModifyDraftSubmit = (e) => {
         e.preventDefault();
         if (modificationPrompt.trim()) {
-            // Use the modificationPrompt as the new base for the next draft
             generateDraftImage(modificationPrompt);
             setAppState('loading');
-            setModificationPrompt(''); // Clear modification prompt after use
+            setModificationPrompt('');
         } else {
             setModalMessage("Please enter your modifications.");
             setShowModal(true);
@@ -156,7 +160,7 @@ const App = () => {
                 setAppState('input');
             }
         } else {
-            setAppState('modify_draft_input'); // Transition to modify draft input
+            setAppState('modify_draft_input');
         }
     };
 
@@ -176,20 +180,12 @@ const App = () => {
         setModalMessage('');
     };
 
-    // Common button classes for consistent styling
     const commonButtonClasses = "py-3 px-6 font-bold rounded-lg shadow-md transition duration-200 ease-in-out transform hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-opacity-75";
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-blue-100 to-purple-200 text-gray-800 p-4 font-inter flex flex-col items-center justify-center">
-            {/* Tailwind CSS CDN and Google Fonts are already in index.html for a proper setup */}
-            {/* These were moved to index.html for a proper project structure:
-            <script src="https://cdn.tailwindcss.com"></script>
-            <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Hancoke&display=swap" rel="stylesheet" />
-            */}
-
             <style>{`
-                /* Styles specific to App.js or overriding global styles */
-                body { font-family: 'Inter', sans-serif; } /* Ensure Inter is default for body */
+                body { font-family: 'Inter', sans-serif; }
                 .modal-overlay {
                     position: fixed;
                     top: 0;
@@ -203,16 +199,15 @@ const App = () => {
                     z-index: 1000;
                 }
                 .modal-content {
-                    background: #F0F4F8; /* Light gray for modal */
+                    background: #F0F4F8;
                     padding: 2rem;
                     border-radius: 0.75rem;
                     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
                     text-align: center;
                     max-width: 90%;
                     width: 400px;
-                    color: #2D3748; /* Dark text for modal */
+                    color: #2D3748;
                 }
-                /* Custom styles to remove white background for the logo */
                 .logo-img {
                     background-color: transparent;
                 }
@@ -221,18 +216,15 @@ const App = () => {
             <div className="max-w-4xl w-full bg-white rounded-xl shadow-2xl p-8 space-y-8">
                 <div className="flex flex-col items-center mb-8">
                     <img
-                        src="https://raw.githubusercontent.com/mdunb/test-image-hosting/main/Gemini_Generated_Image_w1fda4w1fda4w1fd.png" // Actual logo URL
+                        src="https://raw.githubusercontent.com/mdunb/test-image-hosting/main/Gemini_Generated_Image_w1fda4w1fda4w1fd.png"
                         alt="Lens MIND Logo"
-                        className="h-24 w-24 object-contain mb-4 logo-img" // Added logo-img class
-                        onError={(e) => { e.target.src = 'https://placehold.co/100x100/transparent/transparent?text=LensMINDLogo'; }} // Fallback
+                        className="h-24 w-24 object-contain mb-4 logo-img"
+                        onError={(e) => { e.target.src = 'https://placehold.co/100x100/transparent/transparent?text=LensMINDLogo'; }}
                     />
-                    {/* Changed text color to blue-500 and added Hancoke font */}
                     <h1 className="text-6xl font-extrabold text-blue-500 font-['Hancoke']">Lens MIND</h1>
                     <p className="text-xl text-gray-600 mt-2">AI Photography Prompt Generator</p>
                 </div>
 
-
-                {/* State: Input */}
                 {appState === 'input' && (
                     <form onSubmit={handleInitialPromptSubmit} className="space-y-6">
                         <label htmlFor="initial-prompt" className="block text-xl font-semibold text-gray-700">
@@ -255,7 +247,6 @@ const App = () => {
                     </form>
                 )}
 
-                {/* State: Loading */}
                 {isLoading && (
                     <div className="flex justify-center items-center h-64">
                         <div className="animate-spin rounded-full h-20 w-20 border-t-4 border-b-4 border-indigo-500"></div>
@@ -263,7 +254,6 @@ const App = () => {
                     </div>
                 )}
 
-                {/* State: Draft Display */}
                 {appState === 'draft_display' && draftImage && (
                     <div className="space-y-6 text-center">
                         <h2 className="text-2xl font-semibold text-gray-700">Here's a draft image:</h2>
@@ -288,7 +278,6 @@ const App = () => {
                     </div>
                 )}
 
-                {/* State: Modify Draft Input */}
                 {appState === 'modify_draft_input' && (
                     <form onSubmit={handleModifyDraftSubmit} className="space-y-6">
                         <label htmlFor="modification-prompt" className="block text-xl font-semibold text-gray-700">
@@ -310,7 +299,7 @@ const App = () => {
                                 Redesign with Modification
                             </button>
                             <button
-                                type="button" // Use type="button" to prevent form submission
+                                type="button"
                                 onClick={handleStartOver}
                                 className={`${commonButtonClasses} bg-gray-400 text-white hover:bg-gray-500 focus:ring-gray-300`}
                             >
@@ -320,7 +309,6 @@ const App = () => {
                     </form>
                 )}
 
-                {/* State: Optimized Prompt Display */}
                 {appState === 'optimized_prompt_display' && optimizedPrompt && (
                     <div className="space-y-6">
                         <h2 className="text-2xl font-semibold text-gray-700 text-center">Here's your optimized AI prompt:</h2>
@@ -342,7 +330,6 @@ const App = () => {
                 )}
             </div>
 
-            {/* Custom Modal */}
             {showModal && (
                 <div className="modal-overlay">
                     <div className="modal-content">
